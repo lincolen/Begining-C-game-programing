@@ -4,6 +4,7 @@
 #include <iostream>
 #include <SFML/Graphics.hpp>
 #include <vector>
+#include <sstream>
 
 
 
@@ -29,6 +30,11 @@ using namespace sf;
 	 //should make virtual update and setup functions here 
 
  };
+
+ void setTextOriginToCenter(Text & text) {
+   FloatRect textRect = text.getLocalBounds();
+   text.setOrigin(textRect.width / 2, textRect.height / 2);
+ }
 
 class Bee : public SpriteHolder{
 	private:
@@ -99,8 +105,8 @@ class Cloud : public SpriteHolder {
 			_isActive = true;
 		}
 
-	public:
-		Cloud(const Texture & textureCloud, float speed = 0.0f) : SpriteHolder{ textureCloud }, _speed(speed) {
+  public:
+    Cloud(const Texture & textureCloud, float speed = 0.0f) : SpriteHolder{ textureCloud }, _speed(speed) {
 			_isActive = false;
 			++Cloud::numberOfClouds;
 		}
@@ -125,12 +131,48 @@ class Cloud : public SpriteHolder {
 				}
 			}
 			else {
-				setup();
+			  setup();
 			}
-		}
+	  }
 };
 
 int Cloud::numberOfClouds = 0;
+
+class TimeBar{
+ private:
+    RectangleShape _bar; 
+    const float timeBarStartWidth = 400;
+    const float timeBarDefaultHeight = 80;
+    const Color _color = Color::Red;
+    float timeRemaining = 6.0f;
+    float timeBarConsumedPerSecond = timeBarStartWidth / timeRemaining;
+
+ public:
+  TimeBar()  {
+    _bar.setSize(Vector2f(timeBarStartWidth, timeBarDefaultHeight));
+    _bar.setFillColor(_color);
+    _bar.setPosition(1920 / 2 - timeBarStartWidth / 2, 980);
+  }
+
+  void draw(RenderWindow & window) {
+    window.draw(_bar);
+  }
+
+  void reset() {
+    _bar.setSize(Vector2f(timeBarStartWidth, _bar.getSize().y));
+  }
+
+  void update(Time deltaTime) {
+    _bar.setSize(Vector2f(_bar.getSize().x - timeBarConsumedPerSecond * deltaTime.asSeconds(), _bar.getSize().y));
+  }
+
+  bool timeIsUp() {
+    return _bar.getSize().x <= 0.0f;
+  }
+
+
+};
+
 
 int main()
 {
@@ -144,21 +186,49 @@ int main()
 	Texture textureTree;
 	Texture textureBee;
 	Texture textureCloud;
+	Font font;
+	
 	//Load a graphic into the texture
 	textureBackground.loadFromFile("graphics/background.png");
 	textureTree.loadFromFile("graphics/tree.png");
 	textureBee.loadFromFile("graphics/bee.png");
 	textureCloud.loadFromFile("graphics/cloud.png");
+  font.loadFromFile("Fonts/KOMIKAP_.ttf");
 	  
-	//create a sprite
+	/****************
+	staging area
+	****************/
+  int score = 0;
 	Sprite spriteBackground;
 	Sprite spriteTree;
 	Bee bee{ textureBee };
 	const int numberOfClouds = 3;
 	std::vector<Cloud> clouds(numberOfClouds, Cloud(textureCloud));
+	Text startGameText;
+	Text scoreText;
+  TimeBar timeBar;
 	//attach texture to sprite
 	spriteBackground.setTexture(textureBackground);
 	spriteTree.setTexture(textureTree);
+	
+	//timeBar
+	
+
+	//set up text
+	startGameText.setString("Press Enter to start!");
+	startGameText.setCharacterSize(75);
+	startGameText.setFillColor(Color::White);
+	startGameText.setFont(font);
+	//set origin to center
+  setTextOriginToCenter(startGameText);
+	startGameText.setPosition(vm.width / 2, vm.height / 2);
+
+	scoreText.setString("Score = ");
+	scoreText.setCharacterSize(100);
+	scoreText.setFillColor(Color::White);
+	scoreText.setFont(font);
+	scoreText.setPosition(20, 20);
+
 	
 	//set the Background to the screen 
 	spriteBackground.setPosition(0, 0);
@@ -168,6 +238,7 @@ int main()
 
 
 	sf::Clock clock;
+	bool isGamePaused = true;
 
 
 
@@ -180,15 +251,33 @@ int main()
 		if (Keyboard::isKeyPressed(Keyboard::Escape)) {
 			window.close();
 		}
+		if (isGamePaused == true && Keyboard::isKeyPressed(Keyboard::Enter)) {
+			isGamePaused = false;
+      timeBar.reset();
+      score = 0;
+
+		}
 		/********************************
 		update the scene
 		********************************/
 		Time deltaTime = clock.restart();
-		//move bee
-		bee.update(deltaTime);
-		for (Cloud & cloud : clouds) {
-			cloud.update(deltaTime);
+		if (!isGamePaused) {
+			//move bee
+			bee.update(deltaTime);
+      //move clouds
+			for (Cloud & cloud : clouds) {
+				cloud.update(deltaTime);
+			}
+      //shrink time
+      timeBar.update(deltaTime);
+      //timeup
+      if (timeBar.timeIsUp()) {
+        isGamePaused = true;
+        startGameText.setString("Time is up!");
+        setTextOriginToCenter(startGameText);
+      }
 		}
+		scoreText.setString("score =" + score);
 
 
 		/********************************
@@ -202,7 +291,13 @@ int main()
 		}
 		window.draw(spriteTree);
 		bee.draw(window);
-
+		window.draw(scoreText);
+		if (isGamePaused) {
+			window.draw(startGameText);
+    }
+    else {
+      timeBar.draw(window);
+    }
 
 
 		//draw everything
