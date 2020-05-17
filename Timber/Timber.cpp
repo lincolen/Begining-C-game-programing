@@ -4,7 +4,7 @@
 #include <iostream>
 #include <SFML/Graphics.hpp>
 #include <vector>
-#include <algorithm> //foreach
+
 
 
 
@@ -25,6 +25,8 @@ using namespace sf;
 	 void setPosition(const int x, const int y) {
 		 sprite.setPosition(x, y);
 	 }
+
+	 //should make virtual update and setup functions here 
 
  };
 
@@ -80,11 +82,13 @@ class Cloud : public SpriteHolder {
 	private:
 		bool _isActive;
 		float _speed;
+		//used to track the number of clouds in the secene to generte random seeds when initilazing cloud behivior;
+		static int numberOfClouds;
 		
 		void setup() {
 			//seed variance for setting up multiple clouds at the same time
 			static int seedVariance = 1;
-			seedVariance = (seedVariance) % 10 + 1;
+			seedVariance = (seedVariance) % numberOfClouds + 1;
 			srand(int (time(0) * seedVariance));
 			const int minSpeed = 20;
 		    const int speedRange = 200;
@@ -98,6 +102,15 @@ class Cloud : public SpriteHolder {
 	public:
 		Cloud(const Texture & textureCloud, float speed = 0.0f) : SpriteHolder{ textureCloud }, _speed(speed) {
 			_isActive = false;
+			++Cloud::numberOfClouds;
+		}
+		//copy constructor
+		Cloud(const Cloud & rhs) : SpriteHolder{ SpriteHolder(rhs) }, _speed{ rhs._speed }, _isActive{ rhs._isActive } {
+			++Cloud::numberOfClouds;
+		};
+
+		~Cloud() {
+			--numberOfClouds;
 		}
 		bool isActive() {
 			return _isActive;
@@ -116,6 +129,8 @@ class Cloud : public SpriteHolder {
 			}
 		}
 };
+
+int Cloud::numberOfClouds = 0;
 
 int main()
 {
@@ -139,10 +154,8 @@ int main()
 	Sprite spriteBackground;
 	Sprite spriteTree;
 	Bee bee{ textureBee };
-	std::vector<Cloud> clouds(3, Cloud(textureCloud));
-	clouds[0].setPosition(0, 0);
-	clouds[1].setPosition(0, 250);
-	clouds[2].setPosition(0, 500);
+	const int numberOfClouds = 3;
+	std::vector<Cloud> clouds(numberOfClouds, Cloud(textureCloud));
 	//attach texture to sprite
 	spriteBackground.setTexture(textureBackground);
 	spriteTree.setTexture(textureTree);
