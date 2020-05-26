@@ -3,9 +3,11 @@
 #include "pch.h"
 #include <iostream>
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include<cassert>
 #include <vector>
 #include <sstream>
+#include<string>
 
 
 
@@ -26,9 +28,16 @@ enum side { LEFT, RIGHT, NONE, BOTH };
 	 void draw(RenderWindow & window) {
 		 window.draw(sprite);
 	 }
+   //set the position of sprite
+   //when moving the sprite use move() instead
 	 void setPosition(const int x, const int y) {
 		 sprite.setPosition(x, y);
 	 }
+
+   //moves the sprite for the distance passed in the arguments
+   inline void move(const int dx, const int dy) {
+     setPosition(sprite.getPosition().x + dx, sprite.getPosition().y + dy);
+   }
 
 	 //should make virtual update and setup functions here 
 
@@ -44,6 +53,7 @@ enum side { LEFT, RIGHT, NONE, BOTH };
    Axe(const Texture & textureAxe);
    void moveRight();
    void moveLeft();
+   void hide();
 
  private:
    //line up axe with tree
@@ -167,7 +177,7 @@ class Player : public SpriteHolder {
 public:
   Player(const Texture & texturePlayer);
   void reset();
-  void update(const Time & deltaTime, Score & score);
+  void update(const Time & deltaTime, Score & score, Window & window);
   void setAxe(Axe & axe) {
     _axe = &axe;
   }
@@ -189,11 +199,7 @@ class Log : public SpriteHolder {
    Log(const Texture & textureLog);
    void flyRight();
    void flyLeft();
-   void update(const Time & deltaTime) {
-     if (active) {
-       setPosition(sprite.getPosition().x + speedX * deltaTime.asSeconds(), sprite.getPosition().y + speedY * deltaTime.asSeconds());
-     }
-   }
+   void update(const Time & deltaTime);
 
  private:
    bool active = false;
@@ -205,11 +211,12 @@ class Log : public SpriteHolder {
 class TimeBar{
  private:
     RectangleShape _bar; 
-    const float timeBarStartWidth = 400;
-    const float timeBarDefaultHeight = 80;
+    const float timeBarStartWidth = 400.0f;
+    const float timeBarDefaultHeight = 80.0f;
     const Color _color = Color::Red;
-    float timeRemaining = 6.0f;
-    float timeBarConsumedPerSecond = timeBarStartWidth / timeRemaining;
+    const float startTime = 6.0f;
+    float timeRemaining = startTime;
+    const float timeBarConsumedPerSecond = timeBarStartWidth / startTime;
 
  public:
   TimeBar()  {
@@ -223,19 +230,23 @@ class TimeBar{
   }
 
   void reset() {
-    _bar.setSize(Vector2f(timeBarStartWidth, _bar.getSize().y));
+    _bar.setSize(Vector2f(timeBarStartWidth, timeBarDefaultHeight));
+    timeRemaining = startTime;
   }
 
   void update(Time deltaTime) {
-    _bar.setSize(Vector2f(_bar.getSize().x - timeBarConsumedPerSecond * deltaTime.asSeconds(), _bar.getSize().y));
-  }
+    timeRemaining -= deltaTime.asSeconds();
+    _bar.setSize(Vector2f(timeBarConsumedPerSecond * timeRemaining, _bar.getSize().y));
+   }
 
   void increment(const int score) {
-    _bar.setSize(Vector2f(_bar.getSize().x + 0.15 * timeBarConsumedPerSecond * (2.0 / score), _bar.getSize().y));
+    assert (score > 0);
+    timeRemaining +=  0.15 * 2.0 / score;
+    //_bar.setSize(Vector2f(_bar.getSize().x + 0.15 * timeBarConsumedPerSecond * (2.0 / score), _bar.getSize().y));
   }
 
   bool timeIsUp() {
-    return _bar.getSize().x <= 0.0f;
+    return timeRemaining <= 0.0f;
   }
 
 
@@ -334,7 +345,20 @@ int main()
 	scoreText.setFont(font);
 	scoreText.setPosition(20, 20);
 
-	
+  //setup sounds
+  SoundBuffer chopBuffer;
+  SoundBuffer deathBuffer;
+  SoundBuffer outOfTimeBuffer;
+  chopBuffer.loadFromFile("sounds/chop.wav");
+  deathBuffer.loadFromFile("sounds/death.wav");
+  outOfTimeBuffer.loadFromFile("sounds/out_of_time.wav");
+  Sound soundChop;
+  Sound soundDeath;
+  Sound soundOutOfTime;
+  soundChop.setBuffer(chopBuffer);
+  soundDeath.setBuffer(deathBuffer);
+  soundOutOfTime.setBuffer(outOfTimeBuffer);
+
 	//set the Background to the screen 
 	spriteBackground.setPosition(0, 0);
 	spriteTree.setPosition(810, 0);
@@ -351,43 +375,52 @@ int main()
   }
 
   int scoreLastCycle = score.getScore();
-  auto isChoped = [&]() {return !(score.getScore() == scoreLastCycle);};
-	//main loop
+  auto isChoped = [&]() {return score.getScore() != scoreLastCycle;};
+	
+  /*/////////////////////////
+      main loop
+  *//////////////////////////
 	while (window.isOpen()) {
+    Time deltaTime = clock.restart();
 		/********************************
-		handle the player input
+		Exit game
 		********************************/
 		if (Keyboard::isKeyPressed(Keyboard::Escape)) {
 			window.close();
 		}
+    /*/////////////////////
+    Start the game
+    *//////////////////////
 		if (isGamePaused == true && Keyboard::isKeyPressed(Keyboard::Enter)) {
 			isGamePaused = false;
       timeBar.reset();
       score.reset();
-    //remove branches  
+      scoreLastCycle = score.getScore();
+      //remove branches  
       for (int i = 0; i < NUMBER_OF_BRANCHES; ++i) {
         branchPositions[i] = side::NONE;
       }
-      //remove graveStone
-      spriteRIP.setPosition(675, 2000);
-      
+      spriteRIP.setPosition(675, 2000); //remove graveStone
       player.reset();
 
 		}
 		/********************************
 		update the scene
 		********************************/
-		Time deltaTime = clock.restart();
+		
+
 		if (!isGamePaused) {
-      player.update(deltaTime, score);
+      log.update(deltaTime);
+      player.update(deltaTime, score, window);
+      //handle chopping of tree
       if (isChoped()) {
         timeBar.increment(score.getScore()); //increase time
         player.getSide() == side::LEFT ? log.flyRight() : log.flyLeft(); //send log flying
-        updateBranches((int)time(0), branches, branchPositions);
-
+        int seed = (int)time(0) + score.getScore(); // random seed for branch update
+        updateBranches(seed, branches, branchPositions); 
+        soundChop.play();
+        scoreText.setString(std::string("score = ") + std::to_string(score.getScore()));
       }
-      log.update(deltaTime);
-      //move bee
 			bee.update(deltaTime);
       //move clouds
 			for (Cloud & cloud : clouds) {
@@ -400,10 +433,25 @@ int main()
         isGamePaused = true;
         startGameText.setString("Time is up!");
         setTextOriginToCenter(startGameText);
+        soundOutOfTime.play();
+      }
+
+      /*/////////////////////////
+      handle Game over
+      *//////////////////////////
+      bool isGameOver = (branchPositions[NUMBER_OF_BRANCHES - 1] == player.getSide());
+      if (isGameOver) {
+        isGamePaused = true;
+        spriteRIP.setPosition(525, 760); //position grave stone
+        player.setPosition(2000, 660); //hide the player
+        //handle gameover text
+        startGameText.setString("SQUISHED!!");
+        setTextOriginToCenter(startGameText);
+        startGameText.setPosition(vm.width / 2, vm.height / 2);
+        soundDeath.play();
       }
 		}
-		scoreText.setString("score =" + score.getScore());
-
+    //update score text
     setUpBranches(branches, branchPositions);
     scoreLastCycle = score.getScore();
 
@@ -438,13 +486,14 @@ int main()
 
     //draw text
 		window.draw(scoreText);
+
 		if (isGamePaused) {
 			window.draw(startGameText);
     }
     else {
-      timeBar.draw(window);
+  
     }
-
+    timeBar.draw(window);
 
 
 		//show everthing
@@ -466,7 +515,7 @@ int main()
 
 void setUpBranches(Sprite * branches, side * branchPositions) {
   for (int i = 0; i < NUMBER_OF_BRANCHES; ++i) {
-    float height = i * 150;
+    float height = 120 + i * 150;
     switch (branchPositions[i]) {
       case side::LEFT:
         branches[i].setPosition(610, height);
@@ -475,6 +524,7 @@ void setUpBranches(Sprite * branches, side * branchPositions) {
       case side::RIGHT:
         branches[i].setPosition(1330, height);
         branches[i].setRotation(0);
+        break;
       default:
         //hides branch
         branches[i].setPosition(-3000, height);
@@ -485,18 +535,18 @@ void setUpBranches(Sprite * branches, side * branchPositions) {
 
 void updateBranches(const int seed, Sprite *branches, side * branchPositions) {
   //move branches down 
-  for (int i = 0; i < NUMBER_OF_BRANCHES - 1; ++i) {
-    branchPositions[i] = branchPositions[i + 1];
+  for (int i = NUMBER_OF_BRANCHES - 1; i > 0; --i) {
+    branchPositions[i] = branchPositions[i - 1];
   }
   srand(seed);
   int r = rand() % 5;
   if (r == 0) {
-    branchPositions[NUMBER_OF_BRANCHES - 1] = side::LEFT;
+    branchPositions[0] = side::LEFT;
   }else if (r <= 1) {
-    branchPositions[NUMBER_OF_BRANCHES - 1] = side::RIGHT;
+    branchPositions[0] = side::RIGHT;
   }
   else {
-    branchPositions[NUMBER_OF_BRANCHES - 1] = side::NONE;
+    branchPositions[0] = side::NONE;
   }
 }
 
@@ -512,9 +562,19 @@ void Player::reset()
   _acceptInput = true;
 }
 
-void Player::update(const Time & deltaTime, Score & currentScore)
+void Player::update(const Time & deltaTime, Score & currentScore,  Window & window)
 {
   assert(_axe != nullptr && "The axe has no been set!");
+
+  //handle key being released
+  Event event;
+  while (window.pollEvent(event)) {
+    if (event.type != Event::KeyReleased)
+      break;
+    _acceptInput = true;
+    _axe->hide(); //hide axe
+  }
+  //handle key being pressed
   if (!_acceptInput) return;
   if (Keyboard::isKeyPressed(Keyboard::Right)) {
     chopRight();
@@ -557,6 +617,11 @@ void Axe::moveLeft()
   setPosition(AXE_POSITION_LEFT, this->sprite.getPosition().y);
 }
 
+void Axe::hide()
+{
+  setPosition(2000, sprite.getPosition().y);
+}
+
 Log::Log(const Texture & textureLog) : SpriteHolder{textureLog}
 {
   setPosition(810, 720);
@@ -574,6 +639,15 @@ void Log::flyLeft()
   setPosition(810, 720);
   speedX = -5000;
   active = true;
+}
+
+void Log::update(const Time & deltaTime)
+{
+  active = sprite.getPosition().y < -100 ? false : active;
+  if (active == false)
+    return;
+
+  setPosition(sprite.getPosition().x + speedX * deltaTime.asSeconds(), sprite.getPosition().y + speedY * deltaTime.asSeconds());
 }
 
 void Score::reset()
