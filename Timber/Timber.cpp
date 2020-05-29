@@ -1,30 +1,30 @@
 
 
 #include "pch.h"
+//SMLF includes
 #include <iostream>
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
+//standard library
 #include<cassert>
 #include <vector>
 #include <sstream>
 #include<string>
 
-
-
-
 using namespace sf;
 
 enum side { LEFT, RIGHT, NONE, BOTH };
-
+//base class for game objects represented using a sprite
  class SpriteHolder{
 	protected:
 	 Sprite sprite;
 
  public:
+   //initilaize and set texture
 	 SpriteHolder(const Texture & texture) {
 		 sprite.setTexture(texture);
 	 }
-
+   //draw the sprite to the window
 	 void draw(RenderWindow & window) {
 		 window.draw(sprite);
 	 }
@@ -43,6 +43,7 @@ enum side { LEFT, RIGHT, NONE, BOTH };
 
  };
 
+ //sets the origin points of the text to center
  void setTextOriginToCenter(Text & text) {
    FloatRect textRect = text.getLocalBounds();
    text.setOrigin(textRect.width / 2, textRect.height / 2);
@@ -51,8 +52,11 @@ enum side { LEFT, RIGHT, NONE, BOTH };
  class Axe : public SpriteHolder {
  public:
    Axe(const Texture & textureAxe);
+   //move the axe to a right chop position
    void moveRight();
+   //move the axe to a left chop position
    void moveLeft();
+   //Hide the axe of the screen
    void hide();
 
  private:
@@ -162,7 +166,7 @@ class Cloud : public SpriteHolder {
 };
 
 int Cloud::numberOfClouds = 0;
-
+//Class warper for score
 class Score {
   public:
     void reset();
@@ -178,6 +182,7 @@ public:
   Player(const Texture & texturePlayer);
   void reset();
   void update(const Time & deltaTime, Score & score, Window & window);
+  //Set reference to axe obejct
   void setAxe(Axe & axe) {
     _axe = &axe;
   }
@@ -203,8 +208,8 @@ class Log : public SpriteHolder {
 
  private:
    bool active = false;
-   float speedX = 1000;
-   float speedY = -1500;
+   float speedX = 0;
+   float speedY = -2000;
 };
 
 
@@ -214,8 +219,8 @@ class TimeBar{
     const float timeBarStartWidth = 400.0f;
     const float timeBarDefaultHeight = 80.0f;
     const Color _color = Color::Red;
-    const float startTime = 6.0f;
-    float timeRemaining = startTime;
+    const float startTime = 6.0f; //Time given to the player
+    float timeRemaining = startTime; 
     const float timeBarConsumedPerSecond = timeBarStartWidth / startTime;
 
  public:
@@ -224,7 +229,7 @@ class TimeBar{
     _bar.setFillColor(_color);
     _bar.setPosition(1920 / 2 - timeBarStartWidth / 2, 980);
   }
-
+  
   void draw(RenderWindow & window) {
     window.draw(_bar);
   }
@@ -238,11 +243,12 @@ class TimeBar{
     timeRemaining -= deltaTime.asSeconds();
     _bar.setSize(Vector2f(timeBarConsumedPerSecond * timeRemaining, _bar.getSize().y));
    }
-
+  //Add time current round when player chops
+  //ajust formula to change the game difficulty 
   void increment(const int score) {
     assert (score > 0);
+    //(should make private variables?)
     timeRemaining +=  0.15 * 2.0 / score;
-    //_bar.setSize(Vector2f(_bar.getSize().x + 0.15 * timeBarConsumedPerSecond * (2.0 / score), _bar.getSize().y));
   }
 
   bool timeIsUp() {
@@ -252,9 +258,9 @@ class TimeBar{
 
 };
 
-
+//moves the branches down the tree and places the branch at the top of the tree at a semi random position
 void updateBranches(const int seed, Sprite * branches, side * branchPositions);
-int main();
+//update the branch positions
 void setUpBranches(Sprite * branches, side * branchPositions);
 
 const int NUMBER_OF_BRANCHES = 6;
@@ -281,7 +287,7 @@ int main()
   Texture textureRIP;
   Texture textureTree;
 	
-
+  //create font object
 	Font font;
 	
 	//Load a graphic into the texture
@@ -294,6 +300,8 @@ int main()
   texturePlayer.loadFromFile("graphics/player.png");
   textureLog.loadFromFile("graphics/log.png");
   textureRIP.loadFromFile("graphics/rip.png");
+
+  //load font
   font.loadFromFile("Fonts/KOMIKAP_.ttf");
 	  
 	/****************
@@ -306,7 +314,8 @@ int main()
 	Bee bee{ textureBee };
 	const int numberOfClouds = 3;
 	std::vector<Cloud> clouds(numberOfClouds, Cloud(textureCloud));
-	Text startGameText;
+  Text frameRateText;
+  Text startGameText;
 	Text scoreText;
   TimeBar timeBar;
   Sprite branches[NUMBER_OF_BRANCHES];
@@ -316,7 +325,7 @@ int main()
   player.setAxe(axe);
   Log log(textureLog);
 
-	//attach texture to sprite
+	//attach texture to sprites
   for (int i = 0; i < NUMBER_OF_BRANCHES; ++i) {
     branches[i].setTexture(textureBranch);
     FloatRect branchSize = branches[i].getLocalBounds();
@@ -327,23 +336,27 @@ int main()
 	spriteTree.setTexture(textureTree);
   spriteRIP.setTexture(textureRIP);
 
-	//timeBar
-	
-
 	//set up text
 	startGameText.setString("Press Enter to start!");
 	startGameText.setCharacterSize(75);
 	startGameText.setFillColor(Color::White);
 	startGameText.setFont(font);
-	//set origin to center
-  setTextOriginToCenter(startGameText);
-	startGameText.setPosition(vm.width / 2, vm.height / 2);
+  setTextOriginToCenter(startGameText); //set origin to center
+	startGameText.setPosition(vm.width / 2, vm.height / 2); //place at the middle of the screen
 
 	scoreText.setString("Score = ");
 	scoreText.setCharacterSize(100);
 	scoreText.setFillColor(Color::White);
 	scoreText.setFont(font);
-	scoreText.setPosition(20, 20);
+	scoreText.setPosition(20, 20); //set text to top left of the screen
+
+  frameRateText.setString("FPS = ");
+  frameRateText.setCharacterSize(30);
+  frameRateText.setFillColor(Color::Green);
+  frameRateText.setFont(font);
+  frameRateText.setPosition(20, vm.height - 100);
+
+  
 
   //setup sounds
   SoundBuffer chopBuffer;
@@ -361,27 +374,29 @@ int main()
 
 	//set the Background to the screen 
 	spriteBackground.setPosition(0, 0);
-	spriteTree.setPosition(810, 0);
-  spriteRIP.setPosition(600, 2000);
-
-
-
+	spriteTree.setPosition(810, 0); //place tree
+  spriteRIP.setPosition(600, 2000); //hide gravestone
+  
+  //Clock used to measure time between frames 
 	sf::Clock clock;
 	bool isGamePaused = true;
-
-
+  //clear all branches initially
   for (int i = 0; i < NUMBER_OF_BRANCHES; ++i) {
     branchPositions[i] = side::NONE;
   }
 
-  int scoreLastCycle = score.getScore();
+  //used to check if the player chopped the tree
+  int scoreLastCycle = score.getScore(); 
   auto isChoped = [&]() {return score.getScore() != scoreLastCycle;};
-	
+  float secondCounter = 0.0f; // used to determine if a second has elapsed
+  int framesPerSecond = 0; //counts the number of frames every second averegeing out the fps display
   /*/////////////////////////
       main loop
   *//////////////////////////
 	while (window.isOpen()) {
-    Time deltaTime = clock.restart();
+    Time deltaTime = clock.restart(); //get deltatime from last frame
+    secondCounter += deltaTime.asSeconds();
+    secondCounter = secondCounter >= 1.0f ? 0 : secondCounter;
 		/********************************
 		Exit game
 		********************************/
@@ -391,6 +406,7 @@ int main()
     /*/////////////////////
     Start the game
     *//////////////////////
+    //start the game when the player presses enter
 		if (isGamePaused == true && Keyboard::isKeyPressed(Keyboard::Enter)) {
 			isGamePaused = false;
       timeBar.reset();
@@ -407,8 +423,6 @@ int main()
 		/********************************
 		update the scene
 		********************************/
-		
-
 		if (!isGamePaused) {
       log.update(deltaTime);
       player.update(deltaTime, score, window);
@@ -419,16 +433,15 @@ int main()
         int seed = (int)time(0) + score.getScore(); // random seed for branch update
         updateBranches(seed, branches, branchPositions); 
         soundChop.play();
-        scoreText.setString(std::string("score = ") + std::to_string(score.getScore()));
+        scoreText.setString(std::string("score = ") + std::to_string(score.getScore())); //update score text
       }
-			bee.update(deltaTime);
-      //move clouds
+			bee.update(deltaTime); //move bee
 			for (Cloud & cloud : clouds) {
-				cloud.update(deltaTime);
+				cloud.update(deltaTime); //move clouds
 			}
       //shrink time
       timeBar.update(deltaTime);
-      //timeup
+      //check for timeup
       if (timeBar.timeIsUp()) {
         isGamePaused = true;
         startGameText.setString("Time is up!");
@@ -441,19 +454,24 @@ int main()
       *//////////////////////////
       bool isGameOver = (branchPositions[NUMBER_OF_BRANCHES - 1] == player.getSide());
       if (isGameOver) {
-        isGamePaused = true;
+        isGamePaused = true; //pause game
         spriteRIP.setPosition(525, 760); //position grave stone
         player.setPosition(2000, 660); //hide the player
         //handle gameover text
         startGameText.setString("SQUISHED!!");
         setTextOriginToCenter(startGameText);
-        startGameText.setPosition(vm.width / 2, vm.height / 2);
+        startGameText.setPosition(vm.width / 2, vm.height / 2); //locate to screen center
         soundDeath.play();
       }
 		}
-    //update score text
-    setUpBranches(branches, branchPositions);
-    scoreLastCycle = score.getScore();
+    //execute once per second
+    ++framesPerSecond;
+    if (secondCounter == 0) {
+      frameRateText.setString(std::string("FPS = ") + std::to_string(framesPerSecond)); //update framerate text
+      framesPerSecond = 0;
+    }
+    setUpBranches(branches, branchPositions); 
+    scoreLastCycle = score.getScore(); 
 
 		/********************************
 		Draw the scene
@@ -462,56 +480,41 @@ int main()
 
     //darw background
 		window.draw(spriteBackground);
-
 		//draw clouds
 		for (Cloud & cloud : clouds) {
 			cloud.draw(window);
 		}
-
     //draw tree
 		window.draw(spriteTree);
-
     //draw bee
 		bee.draw(window);
-
     //draw branches
     for (int i = 0; i < NUMBER_OF_BRANCHES; ++i) {
       window.draw(branches[i]);
     }
-
+    //draw player
     player.draw(window);
+    //draw axe
     axe.draw(window);
+    //draw gravestone
     window.draw(spriteRIP);
+    //draw log
     log.draw(window);
-
     //draw text
 		window.draw(scoreText);
-
+    window.draw(frameRateText);
 		if (isGamePaused) {
 			window.draw(startGameText);
     }
     else {
-  
+      timeBar.draw(window);
     }
-    timeBar.draw(window);
-
-
+   
 		//show everthing
 		window.display();
 	}
 
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
 
 void setUpBranches(Sprite * branches, side * branchPositions) {
   for (int i = 0; i < NUMBER_OF_BRANCHES; ++i) {
@@ -540,11 +543,13 @@ void updateBranches(const int seed, Sprite *branches, side * branchPositions) {
   }
   srand(seed);
   int r = rand() % 5;
+  //position branch to the left
   if (r == 0) {
     branchPositions[0] = side::LEFT;
+  //position branch to the right
   }else if (r <= 1) {
     branchPositions[0] = side::RIGHT;
-  }
+  } //no branch
   else {
     branchPositions[0] = side::NONE;
   }
@@ -552,12 +557,12 @@ void updateBranches(const int seed, Sprite *branches, side * branchPositions) {
 
 Player::Player(const Texture & texturePlayer) : SpriteHolder{texturePlayer}
 {
-  sprite.setPosition(580, 720);
+  sprite.setPosition(580, 720); //start position
 }
 
 void Player::reset()
 {
-  setPosition(580, 720);
+  setPosition(580, 720); //start position
   _playerSide = side::LEFT;
   _acceptInput = true;
 }
@@ -575,7 +580,7 @@ void Player::update(const Time & deltaTime, Score & currentScore,  Window & wind
     _axe->hide(); //hide axe
   }
   //handle key being pressed
-  if (!_acceptInput) return;
+  if (!_acceptInput) return; 
   if (Keyboard::isKeyPressed(Keyboard::Right)) {
     chopRight();
     currentScore.increment();
@@ -647,7 +652,7 @@ void Log::update(const Time & deltaTime)
   if (active == false)
     return;
 
-  setPosition(sprite.getPosition().x + speedX * deltaTime.asSeconds(), sprite.getPosition().y + speedY * deltaTime.asSeconds());
+  move( speedX * deltaTime.asSeconds(),  speedY * deltaTime.asSeconds());
 }
 
 void Score::reset()
@@ -664,5 +669,3 @@ int Score::getScore() const
 {
   return _score;
 }
-
-
