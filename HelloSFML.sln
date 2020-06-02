@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HelloSFML", "HelloSFML\Hell
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Timber", "Timber\Timber.vcxproj", "{4152131D-EDB0-4CC2-B611-CD45DA80EAFD}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ZombieArena", "ZombieArena\ZombieArena.vcxproj", "{877B642D-B1AB-497B-ABCC-1680EC2F510A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{4152131D-EDB0-4CC2-B611-CD45DA80EAFD}.Release|x64.Build.0 = Release|x64
 		{4152131D-EDB0-4CC2-B611-CD45DA80EAFD}.Release|x86.ActiveCfg = Release|Win32
 		{4152131D-EDB0-4CC2-B611-CD45DA80EAFD}.Release|x86.Build.0 = Release|Win32
+		{877B642D-B1AB-497B-ABCC-1680EC2F510A}.Debug|x64.ActiveCfg = Debug|x64
+		{877B642D-B1AB-497B-ABCC-1680EC2F510A}.Debug|x64.Build.0 = Debug|x64
+		{877B642D-B1AB-497B-ABCC-1680EC2F510A}.Debug|x86.ActiveCfg = Debug|Win32
+		{877B642D-B1AB-497B-ABCC-1680EC2F510A}.Debug|x86.Build.0 = Debug|Win32
+		{877B642D-B1AB-497B-ABCC-1680EC2F510A}.Release|x64.ActiveCfg = Release|x64
+		{877B642D-B1AB-497B-ABCC-1680EC2F510A}.Release|x64.Build.0 = Release|x64
+		{877B642D-B1AB-497B-ABCC-1680EC2F510A}.Release|x86.ActiveCfg = Release|Win32
+		{877B642D-B1AB-497B-ABCC-1680EC2F510A}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
