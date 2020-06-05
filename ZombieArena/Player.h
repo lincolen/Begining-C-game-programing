@@ -1,6 +1,7 @@
 #pragma once
 
 #include<SFML/Graphics.hpp>
+#include<cassert>
 
 using namespace sf;
 
@@ -24,7 +25,7 @@ private:
   float _speed; //pixels per second
 
   bool isVulnerable(const Time & currentTime) const;
-  bool isSetup();
+  //bool isSetup();
 
 public:
   Player();
@@ -53,7 +54,7 @@ public:
   Sprite getSprite() const;
 
   //Move the player
-  void move();
+  void move(const Vector2f & moveVector);
 
   //Update player
   //called once per frame
@@ -63,12 +64,12 @@ public:
   void upgradeSpeed();
 
   //Heal player
-  void heal();
+  void heal(const int amount);
 
   //increase the max health
-  void increaseMaxHealth(int amount);
+  void increaseMaxHealth();
 
   //Returns true of the player died
-  bool isDead();
+  bool isDead() const;
 
 };

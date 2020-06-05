@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Player.h"
 #include <string>
+#include <algorithm> // min, max
+#include <math.h> //PI
 
 
 bool Player::isVulnerable(const Time & currentTime) const
@@ -73,5 +75,54 @@ float Player::getRotation() const
 Sprite Player::getSprite() const
 {
   return _sprite;
+}
+
+void Player::move(const Vector2f & moveVector)
+{
+  _position += moveVector;
+  _position.x = clamp(_position.x, (float)_arena.left + _tileSize, float(_arena.left + _arena.width - _tileSize));
+  _position.y = clamp(_position.y, (float)_arena.top + _tileSize, float(_arena.top + _arena.height -_tileSize));
+}
+
+void Player::update(float elapsedTime, Vector2i mousePosition)
+{
+  //Handle movement
+  Vector2f movementVector(0, 0);
+  const Vector2f UP(1, 0), DOWN(-1, 0), LEFT(-1, 0), RIGHT(1,0);
+  movementVector += UP * (float) Keyboard::isKeyPressed(Keyboard::D);
+  movementVector += DOWN * (float)Keyboard::isKeyPressed(Keyboard::A);
+  movementVector += RIGHT * (float)Keyboard::isKeyPressed(Keyboard::W);
+  movementVector += LEFT * (float)Keyboard::isKeyPressed(Keyboard::S);
+  move(movementVector * _speed * elapsedTime);
+  _sprite.setPosition(_position);
+
+  //angle the player
+  //mouse position reletive to screen center
+  float angle = (atan2(mousePosition.y - _resoultion.y / 2, mousePosition.x - _resoultion.x / 2) * 180) / PI;
+  _sprite.setRotation(angle);
+}
+
+void Player::upgradeSpeed()
+{
+  //20% speed upgrade
+  _speed += START_SPEED * 0.2;
+}
+
+void Player::heal(const int amount)
+{
+  assert(amount >= 0 && "argument out of range");
+  _health += amount;
+  _health = std::min(_health, _maxHealth);
+}
+
+void Player::increaseMaxHealth()
+{
+  //20% max health increase
+  _maxHealth += START_HEALTH * 0.2;
+}
+
+bool Player::isDead() const
+{
+  return _health > 0;
 }
 

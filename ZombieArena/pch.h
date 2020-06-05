@@ -10,5 +10,13 @@
 #define PCH_H
 
 // TODO: add headers that you want to pre-compile here
+//reutrns a base if it is the range between low and high, return low or high otherwise
+template<typename T> inline T clamp(const T & base, const T & low, const T & high) {
+  return std::min(high, std::max(base, low));
+}
+
+const double PI = 3.141;
 
 #endif //PCH_H
+
+
