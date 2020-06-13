@@ -88,11 +88,12 @@ void Player::update(float elapsedTime, Vector2i mousePosition)
 {
   //Handle movement
   Vector2f movementVector(0, 0);
-  const Vector2f UP(1, 0), DOWN(-1, 0), LEFT(-1, 0), RIGHT(1,0);
-  movementVector += UP * (float) Keyboard::isKeyPressed(Keyboard::D);
-  movementVector += DOWN * (float)Keyboard::isKeyPressed(Keyboard::A);
-  movementVector += RIGHT * (float)Keyboard::isKeyPressed(Keyboard::W);
-  movementVector += LEFT * (float)Keyboard::isKeyPressed(Keyboard::S);
+  
+  const Vector2f UP(0, -1), DOWN(0, 1), LEFT(-1, 0), RIGHT(1,0);
+  movementVector += UP * (float) Keyboard::isKeyPressed(Keyboard::W);
+  movementVector += DOWN * (float)Keyboard::isKeyPressed(Keyboard::S);
+  movementVector += RIGHT * (float)Keyboard::isKeyPressed(Keyboard::D);
+  movementVector += LEFT * (float)Keyboard::isKeyPressed(Keyboard::A);
   move(movementVector * _speed * elapsedTime);
   _sprite.setPosition(_position);
 
@@ -124,5 +125,10 @@ void Player::increaseMaxHealth()
 bool Player::isDead() const
 {
   return _health > 0;
+}
+
+void Player::draw(RenderWindow & window) const
+{
+  window.draw(this->getSprite());
 }
 

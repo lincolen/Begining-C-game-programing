@@ -72,4 +72,7 @@ public:
   //Returns true of the player died
   bool isDead() const;
 
+  //draw the player to the window
+  void draw(RenderWindow & window) const;
+
 };
