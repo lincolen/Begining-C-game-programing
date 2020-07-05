@@ -4,8 +4,12 @@
 #include "pch.h"
 #include "Background.h"
 #include "Player.h"
+#include "Zombie.h"
+
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include<forward_list> 
+
 
 using namespace sf;
 
@@ -50,6 +54,9 @@ int main()
   //Arena boundries
   IntRect arena;
 
+  //Enemys
+  std::forward_list<Zombie> horde;
+  
 
   //Main game loop
   while (window.isOpen()) {
@@ -101,6 +108,9 @@ int main()
         //spawn player
         player.spawn(arena, resolution, background::TILE_SIZE);
         clock.restart();
+
+        //spawn enemy
+        horde = createHorde(2, arena);
       }
     }
       
@@ -113,13 +123,16 @@ int main()
         Time deltaTime = clock.restart();
         gameTimeTotal += deltaTime;
         //where is the mouse pointer
-        mouseScreenPosition = Mouse::getPosition();
-        std::cout << mouseScreenPosition.x << std::endl;
+        mouseScreenPosition = Mouse::getPosition(); 
         //get mouse poistion in world cordinates
         mouseWorldPosition = window.mapPixelToCoords(Mouse::getPosition(), mainView);
         //update player
         player.update(deltaTime.asSeconds(), mouseScreenPosition);
-        
+
+        for (auto zombie = horde.begin(); zombie != horde.end(); ++zombie) {
+          zombie->update(deltaTime.asSeconds(), player.getCenter());
+        }
+
         //center main camera on player
         mainView.setCenter(player.getCenter()); 
       }
@@ -135,6 +148,12 @@ int main()
         window.draw(backgroundVertexArray, &textureBackground);
         //draw player
         player.draw(window);
+
+
+        //draw enemy
+        for (auto zombie = horde.begin(); zombie != horde.end(); ++zombie) {
+          zombie->draw(window);
+        }
       }
 
       if (gameState == GameState::LEVELING_UP) {
